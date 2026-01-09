@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="tr">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>PDFolio - Dijital Dergi</title>
+
+		<script src="https://cdn.tailwindcss.com"></script>
+
+		<link
+			rel="stylesheet"
+			href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+		/>
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap"
+			rel="stylesheet"
+		/>
+
+		<link rel="stylesheet" href="style.css" />
+
+		<link rel="icon" href="icon.svg" />
+
+		<script>
+			tailwind.config = {
+				theme: {
+					extend: {
+						fontFamily: {
+							sans: ["Inter", "sans-serif"],
+							serif: ["Playfair Display", "serif"],
+						},
+						colors: {
+							brand: {
+								dark: "#0f172a",
+								accent: "#3b82f6",
+							},
+						},
+					},
+				},
+			};
+		</script>
+	</head>
+	<body class="text-slate-200 antialiased font-sans flex flex-col h-screen">
+		<!-- üst bar -->
+		<header
+			class="w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-700 fixed top-0 z-50 transition-all"
+		>
+			<div
+				class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between"
+			>
+				<div class="flex items-center gap-3">
+					<div
+						class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20"
+					>
+						<i class="fa-solid fa-book-open text-white text-sm"></i>
+					</div>
+					<h1
+						class="text-xl font-bold tracking-tight text-white hidden sm:block"
+					>
+						PDFolio
+						<span
+							class="text-xs font-normal text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded ml-2"
+							>HD+</span
+						>
+					</h1>
+				</div>
+
+				<!-- zoom Kontrolleri -->
+				<div
+					id="zoom-kontrolleri"
+					class="hidden flex items-center gap-2 bg-slate-800/50 p-1 rounded-lg border border-slate-700"
+				>
+					<button
+						onclick="zoom_degistir(-0.1)"
+						class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-700 text-slate-300 transition-colors"
+						title="Uzaklaştır"
+					>
+						<i class="fa-solid fa-minus text-xs"></i>
+					</button>
+					<button
+						onclick="zoom_sifirla()"
+						class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-700 text-slate-300 transition-colors"
+						title="Sıfırla"
+					>
+						<i class="fa-solid fa-magnifying-glass text-xs"></i>
+					</button>
+					<button
+						onclick="zoom_degistir(0.1)"
+						class="w-8 h-8 flex items-center justify-center rounded hover:bg-slate-700 text-slate-300 transition-colors"
+						title="Yakınlaştır"
+					>
+						<i class="fa-solid fa-plus text-xs"></i>
+					</button>
+					<span
+						id="zoom-bilgi"
+						class="text-xs font-mono text-blue-400 px-2 min-w-[3rem] text-center"
+						>%100</span
+					>
+				</div>
+
+				<div class="text-xs md:text-sm text-slate-400 font-medium">
+					Design: <span class="text-blue-400">Eren Söğütlü</span>
+				</div>
+			</div>
+		</header>
+
+		<!-- ana içerik -->
+		<main class="flex-grow flex flex-col pt-16 h-full relative">
+			<!-- yükleme ekranı -->
+			<div
+				id="yukleme-ekrani"
+				class="absolute inset-0 z-40 flex flex-col items-center justify-center p-6 transition-opacity duration-500 bg-[#1e293b]"
+			>
+				<div class="text-center max-w-2xl">
+					<h2 class="text-4xl md:text-6xl font-serif font-bold text-white mb-6">
+						Gerçek<br />
+						<span
+							class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400"
+							>Dergi Deneyimi</span
+						>
+					</h2>
+					<p class="text-slate-400 text-lg mb-10">
+						PDF dosyalarınızı ister mobilde tek sayfa, ister masaüstünde çift
+						sayfa keyfiyle okuyun.
+					</p>
+
+					<div
+						id="surukle-birak-alani"
+						class="group relative border-2 border-dashed border-slate-600 hover:border-blue-500 rounded-2xl p-10 bg-slate-800/50 hover:bg-slate-800 transition-all cursor-pointer w-full max-w-md mx-auto"
+					>
+						<input
+							type="file"
+							id="dosya-girdisi"
+							accept="application/pdf"
+							class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+						/>
+						<div class="flex flex-col items-center pointer-events-none">
+							<div
+								class="w-16 h-16 rounded-full bg-slate-700 group-hover:bg-blue-600/20 group-hover:text-blue-400 flex items-center justify-center mb-4 transition-colors"
+							>
+								<i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+							</div>
+							<h3 class="text-lg font-semibold text-white mb-1">
+								PDF Seç veya Sürükle
+							</h3>
+							<p class="text-sm text-slate-400">Otomatik format dönüştürücü</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- okuyucu arayüzü -->
+			<div id="okuyucu-arayuzu" class="hidden flex-col h-full w-full">
+				<!-- dergi sahnesi (zoom yapılabilir alan) -->
+				<div class="flex-grow relative bg-[#18181b] overflow-hidden">
+					<div class="sahne-kapsayici">
+						<div id="sahne" class="sahne">
+							<div id="dergi-kitabi" class="kitap golge-efekti">
+								<!-- yapraklar buraya eklenecek -->
+								<div
+									class="absolute inset-0 flex items-center justify-center text-slate-500 font-serif italic"
+								>
+									Kitap hazırlanıyor...
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- alt kontroller (navigasyon) -->
+				<div
+					class="flex justify-center items-center py-4 gap-4 bg-slate-900/90 backdrop-blur-sm z-30 border-t border-slate-800"
+				>
+					<button
+						id="onceki-btn"
+						class="w-10 h-10 rounded-full bg-slate-700 hover:bg-blue-600 text-white flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+					>
+						<i class="fa-solid fa-chevron-left"></i>
+					</button>
+					<span
+						id="sayfa-bilgisi"
+						class="text-sm font-mono bg-slate-800 px-4 py-1.5 rounded-full border border-slate-700 min-w-[80px] text-center"
+						>-- / --</span
+					>
+					<button
+						id="sonraki-btn"
+						class="w-10 h-10 rounded-full bg-slate-700 hover:bg-blue-600 text-white flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+					>
+						<i class="fa-solid fa-chevron-right"></i>
+					</button>
+
+					<div class="h-6 w-px bg-slate-700 mx-2"></div>
+
+					<button
+						onclick="sifirla()"
+						class="text-xs text-slate-400 hover:text-white underline"
+					>
+						Kapat
+					</button>
+				</div>
+			</div>
+
+			<!-- işlem durumu -->
+			<div
+				id="islem-cubugu-kapsayici"
+				class="hidden fixed bottom-0 left-0 w-full h-1 bg-slate-800 z-50"
+			>
+				<div class="yukleniyor-cubugu h-full w-0"></div>
+			</div>
+		</main>
+
+		<script src="main.js"></script>
+	</body>
+</html>
